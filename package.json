@@ -1,0 +1,22 @@
+{
+  "name": "phy6-js",
+  "version": "0.0.1",
+  "description": "An experimental physics engine for JavaScript written in ES6.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/95ulisse/phy6-js"
+  },
+  "keywords": [
+    "physics",
+    "js",
+    "engine",
+    "motion",
+    "collision"
+  ],
+  "author": "Marco Cameriero",
+  "license": "MIT"
+}
