@@ -1,0 +1,73 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Phy6-js tests</title>
+    <script type="text/javascript" src="/phy6.js"></script>
+</head>
+<body>
+
+    <h1>Hello world</h1>
+    <canvas width="600" height="450"></canvas>
+
+    <script type="text/javascript">
+    (function () {
+
+        var Vector = phy6.Vector,
+            Body = phy6.Body,
+            Engine = phy6.Engine,
+            Renderer = phy6.Renderer,
+            Timer = phy6.Timer;
+
+        var square = new Body({
+            position: new Vector(110, 200),
+            force: new Vector(1, 10),
+            mass: 100000,
+            vertices: [
+                new Vector(-100, -100),
+                new Vector(100, -100),
+                new Vector(100, 100),
+                new Vector(-100, 100)
+            ]
+        });
+
+        var square2 = new Body({
+            position: new Vector(100, 80),
+            force: new Vector(1, 0),
+            mass: 100000,
+            vertices: [
+                new Vector(0, -30),
+                new Vector(30, 0),
+                new Vector(0, 30),
+                new Vector(-30, 0)
+            ]
+        });
+
+        var triangle = new Body({
+            position: new Vector(300, 200),
+            force: new Vector(-1, 0),
+            mass: 100000,
+            vertices: [
+                new Vector(0, -100),
+                new Vector(50, 50),
+                new Vector(-50, 50)
+            ]
+        });
+
+        var engine = new Engine({
+            bodies: [ square, square2, triangle ]
+        });
+
+        new Renderer(engine, document.getElementsByTagName('canvas')[0], {
+            background: '#DDD',
+            wireframe: true
+        }).start();
+
+        new Timer(engine).start()
+
+        engine.emit('update');
+
+    })();
+    </script>
+
+</body>
+</html>
