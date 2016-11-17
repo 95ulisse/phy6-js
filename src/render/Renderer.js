@@ -1,5 +1,6 @@
 import extend from 'extend';
 import autobind from 'autobind-decorator';
+import { now } from '../core/util';
 
 const drawBodyWireframe = (context, bodies, options) => {
 
@@ -7,16 +8,10 @@ const drawBodyWireframe = (context, bodies, options) => {
     context.beginPath();
     bodies.forEach(b => {
 
-        // All the coordinates of the vertices are relative to the body's center
-        context.translate(b.position.x, b.position.y);
-
         // Draws the path for the hull
         context.moveTo(b.vertices[0].x, b.vertices[0].y);
         b.vertices.forEach(v => context.lineTo(v.x, v.y));
         context.lineTo(b.vertices[0].x, b.vertices[0].y);
-
-        // Restore the state of the graphics context
-        context.translate(-b.position.x, -b.position.y);
 
     });
     context.closePath();
@@ -33,17 +28,11 @@ const drawBodyAxes = (context, bodies, options) => {
     context.beginPath();
     bodies.forEach(b => {
 
-        // All the coordinates of the vertices are relative to the body's center
-        context.translate(b.position.x, b.position.y);
-
         // Axes
         b.axes.forEach(a => {
-            context.moveTo(0, 0);
-            context.lineTo(a.x * 20, a.y * 20);
+            context.moveTo(b.position.x, b.position.y);
+            context.lineTo(b.position.x + a.x * 20, b.position.y + a.y * 20);
         });
-
-        // Restore the state of the graphics context
-        context.translate(-b.position.x, -b.position.y);
 
     });
     context.closePath();
@@ -76,8 +65,12 @@ export default class Renderer {
             axesWidth: 1,
             axesStyle: 'orange',
             wireframe: true,
-            showAxes: true
+            showAxes: true,
+            showFPS: false
         }, options);
+        this._frameCount = 0;
+        this._lastFrameCountReset = now();
+        this._fps = -1;
     }
 
     /**
@@ -125,6 +118,22 @@ export default class Renderer {
         // Axes
         if (options.showAxes) {
             drawBodyAxes(context, engine.bodies, options);
+        }
+
+        // Increment the frame counter
+        this._frameCount++;
+        const moment = now();
+        if (moment - this._lastFrameCountReset >= 1000) {
+            this._fps = this._frameCount;
+            this._frameCount = 0;
+            this._lastFrameCountReset = moment;
+        }
+
+        // FPS
+        if (options.showFPS && this._fps > -1) {
+            context.font = '24px monospace';
+            context.fillStyle = 'red';
+            context.fillText(this._fps, 10, 30);
         }
 
     }

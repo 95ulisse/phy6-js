@@ -1,6 +1,6 @@
 import EventEmitter from 'eventemitter3';
 import extend from 'extend';
-import Vector from './Vector';
+import Vector from '../geometry/Vector';
 
 const VERTICES = Symbol('vertices');
 const POSITION = Symbol('position');
@@ -23,14 +23,26 @@ export default class Body extends EventEmitter {
             position: new Vector(0, 0),
             velocity: new Vector(0, 0),
             force: new Vector(0, 0),
-            mass: 1,
+            mass: 0,
+            density: 0.001,
+            area: 0,
             isStatic: false
         }, options);
 
-        for (let k in options) {
-            if (Object.prototype.hasOwnProperty.call(options, k)) {
-                this[k] = options[k];
-            }
+        // Properties must be set in order to make sure that the user can override
+        // autocomputed values like area and mass
+        const order = [
+            'position',
+            'vertices',
+            'velocity',
+            'force',
+            'area',
+            'density',
+            'mass',
+            'isStatic'
+        ];
+        for (const k of order) {
+            this[k] = options[k];
         }
     }
 
@@ -39,7 +51,10 @@ export default class Body extends EventEmitter {
     }
 
     set vertices(vertices) {
-        this[VERTICES] = vertices;
+
+        // Vertices are given in input relative to the body center,
+        // we want them to be in world coordinates
+        vertices = vertices.map(v => v.add(this.position));
 
         // We need to recalculate the collision axes for the new vertices
         const axes = vertices.map((v, i) => vertices[(i + 1) % vertices.length].sub(v).perp().normalize());
@@ -55,6 +70,7 @@ export default class Body extends EventEmitter {
         }
         this.axes = Array.from(map.values());
 
+        this[VERTICES] = vertices;
     }
 
     get position() {
@@ -62,8 +78,18 @@ export default class Body extends EventEmitter {
     }
 
     set position(p) {
-        this[POSITION] = p;
+
+        // Update the position of the vertices
+        const delta = p.sub(this[POSITION]);
+        if (this[VERTICES]) {
+            this[VERTICES] = this[VERTICES].map(v => v.add(delta));
+        }
+
+        // Manually reset the previous position to this one,
+        // since the user changed the position manually
         this.previousPosition = p;
+
+        this[POSITION] = p;
     }
 
     /**
@@ -87,6 +113,9 @@ export default class Body extends EventEmitter {
         // https://en.wikipedia.org/wiki/Verlet_integration#Non-constant_time_differences
         this.velocity.x = prevVelocity.x * correction1 + (this.force.x / this.mass) * correction2;
         this.velocity.y = prevVelocity.y * correction1 + (this.force.y / this.mass) * correction2;
+
+        // Updates the position of the vertices
+        this[VERTICES] = this[VERTICES].map(v => v.add(this.velocity));
 
         // And now position
         this.previousPosition = this.position;

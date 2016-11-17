@@ -1,3 +1,4 @@
+import EventEmitter from 'eventemitter3';
 import autobind from 'autobind-decorator';
 import extend from 'extend';
 import { global, now } from './util';
@@ -17,17 +18,16 @@ if (!requestAnimationFrame) {
 /**
  *    Main game loop.
  *    This class provides the means to control the timing of a physical simulation,
- *    so that it can be slowed down or made go faster. Updates automatically
- *    the engine at every tick.
+ *    so that it can be slowed down or made go faster. Fires the event `tick` when ready.
  */
-export default class Timer {
+export default class Timer extends EventEmitter {
 
     /**
      *    Creates a new `Timer` instance.
-     *    @param {Engine} engine - Engine to update at every tick.
+     *    @param {object} options - Options for the timer.
      */
-    constructor(engine, options) {
-        this._engine = engine;
+    constructor(options) {
+        super();
         this._options = extend({
             fps: 60,
             deltaSamplesCount: 60,
@@ -92,8 +92,8 @@ export default class Timer {
 
         }
 
-        // Update the engine
-        this._engine.update({ delta, lastDelta });
+        // Fire the event
+        this.emit('tick', { delta, lastDelta });
 
         // Before exiting, don't forget that we want to be called again
         this._frameHandle = requestAnimationFrame(this._onTick);

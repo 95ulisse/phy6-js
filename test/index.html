@@ -59,10 +59,13 @@
 
         new Renderer(engine, document.getElementsByTagName('canvas')[0], {
             background: '#DDD',
-            wireframe: true
+            wireframe: true,
+            showFPS: true
         }).start();
 
-        new Timer(engine).start()
+        const timer = new Timer();
+        timer.on('tick', engine.update.bind(engine));
+        timer.start();
 
         engine.emit('update');
 
