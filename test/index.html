@@ -20,7 +20,6 @@
 
         var square = new Body({
             position: new Vector(110, 200),
-            force: new Vector(1, 10),
             mass: 100000,
             vertices: [
                 new Vector(-100, -100),
@@ -32,8 +31,7 @@
 
         var square2 = new Body({
             position: new Vector(100, 80),
-            force: new Vector(1, 0),
-            mass: 100000,
+            isStatic: true,
             vertices: [
                 new Vector(0, -30),
                 new Vector(30, 0),
@@ -44,7 +42,6 @@
 
         var triangle = new Body({
             position: new Vector(300, 200),
-            force: new Vector(-1, 0),
             mass: 100000,
             vertices: [
                 new Vector(0, -100),
@@ -55,6 +52,23 @@
 
         var engine = new Engine({
             bodies: [ square, square2, triangle ]
+        });
+
+        engine.on('preUpdate', () => {
+            engine.bodies.forEach(b => {
+
+                // Each body has it's own gravitation field
+                b.force = engine.bodies.reduce((a, b2) => {
+                    if (b === b2) {
+                        return a;
+                    } else {
+                        const d = b2.position.sub(b.position);
+                        const intensity = 6.67e-9 * b.mass * b2.mass / (d.lengthSquared());
+                        return a.add(d.normalize().scalar(intensity));
+                    }
+                }, new Vector(0, 0));
+
+            });
         });
 
         new Renderer(engine, document.getElementsByTagName('canvas')[0], {

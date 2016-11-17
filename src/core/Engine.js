@@ -36,6 +36,11 @@ export default class Engine extends EventEmitter {
             dt = { delta: dt, lastDelta: dt };
         }
 
+        // We emit the `preUpdate` event to let the user change body properties
+        // before the actual update. This step is crucial to let the forces changed
+        // at every update.
+        this.emit('preUpdate');
+
         // Updates all the bodies
         for (let b of this.bodies) {
             if (!b.isStatic) {

@@ -1,6 +1,7 @@
 import EventEmitter from 'eventemitter3';
 import extend from 'extend';
 import Vector from '../geometry/Vector';
+import * as Vertices from '../geometry/Vertices';
 
 const VERTICES = Symbol('vertices');
 const POSITION = Symbol('position');
@@ -32,12 +33,12 @@ export default class Body extends EventEmitter {
         // Properties must be set in order to make sure that the user can override
         // autocomputed values like area and mass
         const order = [
+            'density',
             'position',
             'vertices',
             'velocity',
             'force',
             'area',
-            'density',
             'mass',
             'isStatic'
         ];
@@ -55,6 +56,12 @@ export default class Body extends EventEmitter {
         // Vertices are given in input relative to the body center,
         // we want them to be in world coordinates
         vertices = vertices.map(v => v.add(this.position));
+
+        // Compute area from the new vertices
+        this.area = Vertices.area(vertices);
+
+        // Use the new area to compute mass
+        this.mass = this.density * this.area;
 
         // We need to recalculate the collision axes for the new vertices
         const axes = vertices.map((v, i) => vertices[(i + 1) % vertices.length].sub(v).perp().normalize());
@@ -100,6 +107,10 @@ export default class Body extends EventEmitter {
      *    `lastDelta` is assumed to be equal to `delta`.
      */
     update(dt) {
+
+        if (this.isStatic) {
+            return;
+        }
 
         if (typeof dt === 'number') {
             dt = { delta: dt, lastDelta: dt };
