@@ -2,9 +2,11 @@ import EventEmitter from 'eventemitter3';
 import extend from 'extend';
 import Vector from '../geometry/Vector';
 import * as Vertices from '../geometry/Vertices';
+import * as Bounds from '../geometry/Bounds';
 
 const VERTICES = Symbol('vertices');
 const POSITION = Symbol('position');
+const ISSTATIC = Symbol('isStatic');
 
 /**
  *    Body involved in a physical simulation.
@@ -19,7 +21,7 @@ export default class Body extends EventEmitter {
     constructor(options) {
         super();
 
-        options = extend(true, {
+        options = extend({
             vertices: [],
             position: new Vector(0, 0),
             velocity: new Vector(0, 0),
@@ -36,14 +38,17 @@ export default class Body extends EventEmitter {
             'density',
             'position',
             'vertices',
+            'bounds',
             'velocity',
             'force',
             'area',
-            'mass',
-            'isStatic'
+            'isStatic',
+            'mass'
         ];
         for (const k of order) {
-            this[k] = options[k];
+            if (typeof options[k] !== 'undefined') {
+                this[k] = options[k];
+            }
         }
     }
 
@@ -62,6 +67,9 @@ export default class Body extends EventEmitter {
 
         // Use the new area to compute mass
         this.mass = this.density * this.area;
+
+        // Update bounds
+        this.bounds = Bounds.fromVertices(vertices);
 
         // We need to recalculate the collision axes for the new vertices
         const axes = vertices.map((v, i) => vertices[(i + 1) % vertices.length].sub(v).perp().normalize());
@@ -99,6 +107,19 @@ export default class Body extends EventEmitter {
         this[POSITION] = p;
     }
 
+    get isStatic() {
+        return this[ISSTATIC];
+    }
+
+    set isStatic(v) {
+        this[ISSTATIC] = v;
+        if (v) {
+            this.mass = Infinity;
+        } else {
+            this.mass = this.density * this.area;
+        }
+    }
+
     /**
      *    Advances the physical simulation of `dt` seconds.
      *    @param {number|object} dt - Amount of time to advance the simulation.
@@ -125,8 +146,9 @@ export default class Body extends EventEmitter {
         this.velocity.x = prevVelocity.x * correction1 + (this.force.x / this.mass) * correction2;
         this.velocity.y = prevVelocity.y * correction1 + (this.force.y / this.mass) * correction2;
 
-        // Updates the position of the vertices
+        // Updates the position of the vertices and the bounds
         this[VERTICES] = this[VERTICES].map(v => v.add(this.velocity));
+        this.bounds = Bounds.translate(this.bounds, this.velocity);
 
         // And now position
         this.previousPosition = this.position;

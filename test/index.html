@@ -57,9 +57,13 @@
         engine.on('preUpdate', () => {
             engine.bodies.forEach(b => {
 
+                if (b.isStatic) {
+                    return;
+                }
+
                 // Each body has it's own gravitation field
                 b.force = engine.bodies.reduce((a, b2) => {
-                    if (b === b2) {
+                    if (b === b2 || b2.isStatic) {
                         return a;
                     } else {
                         const d = b2.position.sub(b.position);
@@ -74,7 +78,8 @@
         new Renderer(engine, document.getElementsByTagName('canvas')[0], {
             background: '#DDD',
             wireframe: true,
-            showFPS: true
+            showFPS: true,
+            showBounds: true
         }).start();
 
         const timer = new Timer();

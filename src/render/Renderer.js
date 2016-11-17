@@ -2,6 +2,31 @@ import extend from 'extend';
 import autobind from 'autobind-decorator';
 import { now } from '../core/util';
 
+const drawBodyBounds = (context, bodies, options) => {
+
+    context.beginPath();
+    bodies.forEach(b => {
+
+        // Draws the rectangle of the bounds
+        const min = b.bounds.min;
+        const max = b.bounds.max;
+        context.moveTo(min.x, min.y);
+        context.lineTo(max.x, min.y);
+        context.lineTo(max.x, max.y);
+        context.lineTo(min.x, max.y);
+        context.lineTo(min.x, min.y);
+
+    });
+    context.closePath();
+
+    // Style for the lines
+    context.setLineDash([5, 5]);
+    context.lineWidth = options.boundsWidth;
+    context.strokeStyle = options.boundsStyle;
+    context.stroke();
+
+};
+
 const drawBodyWireframe = (context, bodies, options) => {
 
     // For each of the bodies, draw a path passing through all the vertices
@@ -17,6 +42,7 @@ const drawBodyWireframe = (context, bodies, options) => {
     context.closePath();
 
     // Style for the lines
+    context.setLineDash([0, 0]);
     context.lineWidth = options.strokeWidth;
     context.strokeStyle = options.strokeStyle;
     context.stroke();
@@ -38,6 +64,7 @@ const drawBodyAxes = (context, bodies, options) => {
     context.closePath();
 
     // Style for the lines
+    context.setLineDash([0, 0]);
     context.lineWidth = options.axesWidth;
     context.strokeStyle = options.axesStyle;
     context.stroke();
@@ -62,11 +89,14 @@ export default class Renderer {
             background: 'transparent',
             strokeWidth: 1,
             strokeStyle: '#000',
+            boundsWidth: 1,
+            boundsStyle: 'orange',
             axesWidth: 1,
             axesStyle: 'orange',
             wireframe: true,
             showAxes: true,
-            showFPS: false
+            showFPS: false,
+            showBounds: false
         }, options);
         this._frameCount = 0;
         this._lastFrameCountReset = now();
@@ -108,6 +138,11 @@ export default class Renderer {
         if (options.background && options.background !== 'transparent') {
             context.fillStyle = options.background;
             context.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Bounds
+        if (options.showBounds) {
+            drawBodyBounds(context, engine.bodies, options);
         }
 
         // Draw wireframes
