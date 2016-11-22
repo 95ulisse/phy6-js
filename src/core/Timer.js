@@ -31,7 +31,7 @@ export default class Timer extends EventEmitter {
         this._options = extend({
             fps: 60,
             deltaSamplesCount: 60,
-            isFixed: false
+            isFixed: true
         }, options);
 
         // Compute some common options
@@ -70,6 +70,8 @@ export default class Timer extends EventEmitter {
             // Fixed step
             delta = lastDelta = options.delta;
         } else {
+
+            // WARNING: This is horribly experimental, and causes lots of problems.
 
             // Compute current delta
             delta = (time - this._previousTime) || options.delta;

@@ -68,6 +68,30 @@ export default class Vector {
     }
 
     /**
+     *    Performs the cross product between this vector and the given one.
+     *    @param {Vector} other - Other vector of the product.
+     *    @return {number} Result of the operation.
+     */
+    cross(other) {
+        return (this.x * other.y) - (this.y * other.x);
+    }
+
+    /**
+     *    Rotates this vector around the origin of the given angle.
+     *    @param {number} angle - Angle to rotate this vector of.
+     *    @return {Vector} New vector result of the rotation.
+     */
+    rotate(angle) {
+        const sin = Math.sin(angle);
+        const cos = Math.cos(angle);
+
+        return new Vector(
+            this.x * cos - this.y * sin,
+            this.x * sin + this.y * cos
+        );
+    }
+
+    /**
      *    Returns the length of this vector.
      *    @return {number} Length of this vector.
      */

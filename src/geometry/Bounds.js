@@ -38,3 +38,16 @@ export const translate = (bounds, delta) => {
         max: bounds.max.add(delta)
     };
 };
+
+/**
+ *    Returns a boolean value indicating whether the given bounds overlap or not.
+ *    @param  {Bounds} a - First bounds.
+ *    @param  {Bounds} b - Second bounds.
+ *    @return {boolean} `true` if the bounds overlap, `false` otherwise.
+ */
+export const overlap = (a, b) => {
+    return !(
+        a.max.x < b.min.x || a.min.X > b.max.X ||
+        a.max.y < b.min.y || a.min.y > b.max.y
+    );
+};

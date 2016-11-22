@@ -2,74 +2,61 @@ import extend from 'extend';
 import autobind from 'autobind-decorator';
 import { now } from '../core/util';
 
-const drawBodyBounds = (context, bodies, options) => {
+const drawFuncionFactory = (optionsName, f) => {
+    return (context, bodies, options) => {
 
-    context.beginPath();
-    bodies.forEach(b => {
+        context.beginPath();
+        bodies.forEach(b => f(context, b));
 
-        // Draws the rectangle of the bounds
-        const min = b.bounds.min;
-        const max = b.bounds.max;
-        context.moveTo(min.x, min.y);
-        context.lineTo(max.x, min.y);
-        context.lineTo(max.x, max.y);
-        context.lineTo(min.x, max.y);
-        context.lineTo(min.x, min.y);
+        context.setLineDash(options[optionsName + 'Dash']);
+        context.lineWidth = options[optionsName + 'Width'];
+        context.strokeStyle = options[optionsName + 'Style'];
+        context.stroke();
 
-    });
-    context.closePath();
-
-    // Style for the lines
-    context.setLineDash([5, 5]);
-    context.lineWidth = options.boundsWidth;
-    context.strokeStyle = options.boundsStyle;
-    context.stroke();
-
+    };
 };
 
-const drawBodyWireframe = (context, bodies, options) => {
+const drawBodyBounds = drawFuncionFactory('bounds', (context, b) => {
 
-    // For each of the bodies, draw a path passing through all the vertices
-    context.beginPath();
-    bodies.forEach(b => {
+    // Draws the rectangle of the bounds
+    const min = b.bounds.min;
+    const max = b.bounds.max;
+    context.moveTo(min.x, min.y);
+    context.lineTo(max.x, min.y);
+    context.lineTo(max.x, max.y);
+    context.lineTo(min.x, max.y);
+    context.lineTo(min.x, min.y);
 
-        // Draws the path for the hull
-        context.moveTo(b.vertices[0].x, b.vertices[0].y);
-        b.vertices.forEach(v => context.lineTo(v.x, v.y));
-        context.lineTo(b.vertices[0].x, b.vertices[0].y);
+});
 
+const drawBodyWireframe = drawFuncionFactory('wireframe', (context, b) => {
+
+    // Draws the path for the hull
+    context.moveTo(b.vertices[0].x, b.vertices[0].y);
+    b.vertices.forEach(v => context.lineTo(v.x, v.y));
+    context.lineTo(b.vertices[0].x, b.vertices[0].y);
+
+});
+
+const drawBodyAxes = drawFuncionFactory('axes', (context, b) => {
+
+    // Axes
+    b.axes.forEach(a => {
+        context.moveTo(b.position.x, b.position.y);
+        context.lineTo(b.position.x + a.x * 10, b.position.y + a.y * 10);
     });
-    context.closePath();
 
-    // Style for the lines
-    context.setLineDash([0, 0]);
-    context.lineWidth = options.strokeWidth;
-    context.strokeStyle = options.strokeStyle;
-    context.stroke();
+});
 
-};
+const drawBodyVelocities = drawFuncionFactory('velocities', (context, b) => {
 
-const drawBodyAxes = (context, bodies, options) => {
+    // Velocities
+    if (b.velocity.x !== 0 || b.velocity.y !== 0) {
+        context.moveTo(b.position.x, b.position.y);
+        context.lineTo(b.position.x + b.velocity.x * 10, b.position.y + b.velocity.y * 10);
+    }
 
-    context.beginPath();
-    bodies.forEach(b => {
-
-        // Axes
-        b.axes.forEach(a => {
-            context.moveTo(b.position.x, b.position.y);
-            context.lineTo(b.position.x + a.x * 20, b.position.y + a.y * 20);
-        });
-
-    });
-    context.closePath();
-
-    // Style for the lines
-    context.setLineDash([0, 0]);
-    context.lineWidth = options.axesWidth;
-    context.strokeStyle = options.axesStyle;
-    context.stroke();
-
-};
+});
 
 /**
  *    HTML5 Canvas render for the physical engine.
@@ -87,16 +74,28 @@ export default class Renderer {
         this._canvas = canvas;
         this._options = extend({
             background: 'transparent',
-            strokeWidth: 1,
-            strokeStyle: '#000',
+
+            showWireframe: true,
+            wireframeWidth: 1.5,
+            wireframeStyle: '#000',
+            wireframeDash: [0, 0],
+
+            showBounds: false,
             boundsWidth: 1,
             boundsStyle: 'orange',
+            boundsDash: [5, 5],
+
+            showAxes: true,
             axesWidth: 1,
             axesStyle: 'orange',
-            wireframe: true,
-            showAxes: true,
-            showFPS: false,
-            showBounds: false
+            axesDash: [0, 0],
+
+            showVelocities: true,
+            velocitiesWidth: 1.5,
+            velocitiesStyle: '#06C',
+            velocitiesDash: [0, 0],
+
+            showFPS: false
         }, options);
         this._frameCount = 0;
         this._lastFrameCountReset = now();
@@ -146,13 +145,18 @@ export default class Renderer {
         }
 
         // Draw wireframes
-        if (options.wireframe) {
+        if (options.showWireframe) {
             drawBodyWireframe(context, engine.bodies, options);
         }
 
         // Axes
         if (options.showAxes) {
             drawBodyAxes(context, engine.bodies, options);
+        }
+
+        // Velocities
+        if (options.showVelocities) {
+            drawBodyVelocities(context, engine.bodies, options);
         }
 
         // Increment the frame counter

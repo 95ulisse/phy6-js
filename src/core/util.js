@@ -15,3 +15,20 @@ export const now = () => {
         return Date.now();
     }
 };
+
+/**
+ * Clamps the given value to the given interval.
+ * @param  {number} v - Value to clamp.
+ * @param  {number} min - Minimum allowed value for `v`.
+ * @param  {number} max - Maximum allowed value for `v`.
+ * @return {number} The clamped value.
+ */
+export const clamp = (v, min, max) => {
+    if (v < min) {
+        return min;
+    } else if (v > max) {
+        return max;
+    } else {
+        return v;
+    }
+};

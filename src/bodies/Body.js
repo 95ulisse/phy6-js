@@ -4,9 +4,10 @@ import Vector from '../geometry/Vector';
 import * as Vertices from '../geometry/Vertices';
 import * as Bounds from '../geometry/Bounds';
 
-const VERTICES = Symbol('vertices');
-const POSITION = Symbol('position');
-const ISSTATIC = Symbol('isStatic');
+export const VERTICES = Symbol('vertices');
+export const POSITION = Symbol('position');
+export const ANGLE = Symbol('angle');
+export const ISSTATIC = Symbol('isStatic');
 
 /**
  *    Body involved in a physical simulation.
@@ -24,32 +25,50 @@ export default class Body extends EventEmitter {
         options = extend({
             vertices: [],
             position: new Vector(0, 0),
+            previousPosition: new Vector(0, 0),
             velocity: new Vector(0, 0),
             force: new Vector(0, 0),
-            mass: 0,
+            angularVelocity: 0,
+            angle: 0,
+            previousAngle: 0,
+            torque: 0,
             density: 0.001,
-            area: 0,
-            isStatic: false
+            isStatic: false,
+            slop: 0.05,
+            restitution: 0.5
         }, options);
 
         // Properties must be set in order to make sure that the user can override
         // autocomputed values like area and mass
         const order = [
+            'previousPosition',
+            'previousAngle',
             'density',
             'position',
             'vertices',
-            'bounds',
             'velocity',
             'force',
-            'area',
             'isStatic',
-            'mass'
+            'angularVelocity',
+            'angle',
+            'torque',
+            'slop',
+            'restitution',
+
+            // Overrides of computed values
+            'area',
+            'mass',
+            'inertia',
+            'invMass',
+            'invInertia',
+            'bounds'
         ];
         for (const k of order) {
             if (typeof options[k] !== 'undefined') {
                 this[k] = options[k];
             }
         }
+
     }
 
     get vertices() {
@@ -67,6 +86,7 @@ export default class Body extends EventEmitter {
 
         // Use the new area to compute mass
         this.mass = this.density * this.area;
+        this.invMass = 1 / this.mass;
 
         // Update bounds
         this.bounds = Bounds.fromVertices(vertices);
@@ -85,6 +105,11 @@ export default class Body extends EventEmitter {
         }
         this.axes = Array.from(map.values());
 
+        // Computes centroid and inertia of the body
+        this.centroid = Vertices.centroid(vertices);
+        this.inertia = Vertices.inertia(vertices, this.mass, this.centroid);
+        this.invInertia = 1 / this.inertia;
+
         this[VERTICES] = vertices;
     }
 
@@ -95,16 +120,35 @@ export default class Body extends EventEmitter {
     set position(p) {
 
         // Update the position of the vertices
-        const delta = p.sub(this[POSITION]);
+        const delta = p.sub(this[POSITION] || new Vector(0, 0));
         if (this[VERTICES]) {
             this[VERTICES] = this[VERTICES].map(v => v.add(delta));
         }
 
-        // Manually reset the previous position to this one,
-        // since the user changed the position manually
-        this.previousPosition = p;
+        // Do not change velocity
+        this.previousPosition = this.previousPosition.add(delta);
 
         this[POSITION] = p;
+    }
+
+    get angle() {
+        return this[ANGLE];
+    }
+
+    set angle(v) {
+        const deltaAngle = v - (this[ANGLE] || 0);
+
+        // Rotates the geometry of the body
+        if (deltaAngle !== 0) {
+            Vertices.rotate(this[VERTICES], deltaAngle, this[POSITION]);
+            this.axes = this.axes.map(a => a.rotate(deltaAngle));
+            this.bounds = Bounds.fromVertices(this[VERTICES]);
+        }
+
+        // Do not change angular velocity
+        this.previousAngle += deltaAngle;
+
+        this[ANGLE] = v;
     }
 
     get isStatic() {
@@ -115,8 +159,10 @@ export default class Body extends EventEmitter {
         this[ISSTATIC] = v;
         if (v) {
             this.mass = Infinity;
+            this.invMass = 0;
         } else {
             this.mass = this.density * this.area;
+            this.invMass = 1 / this.mass;
         }
     }
 
@@ -146,9 +192,20 @@ export default class Body extends EventEmitter {
         this.velocity.x = prevVelocity.x * correction1 + (this.force.x / this.mass) * correction2;
         this.velocity.y = prevVelocity.y * correction1 + (this.force.y / this.mass) * correction2;
 
+        // Always using Verlet, update the angle and angular velocity
+        this.angularVelocity = (this.angle - this.previousAngle) * correction1 + (this.torque / this.inertia) * correction2;
+        this.previousAngle = this.angle;
+        this[ANGLE] += this.angularVelocity;
+
         // Updates the position of the vertices and the bounds
         this[VERTICES] = this[VERTICES].map(v => v.add(this.velocity));
-        this.bounds = Bounds.translate(this.bounds, this.velocity);
+        if (this.angularVelocity == 0) {
+            this.bounds = Bounds.translate(this.bounds, this.velocity);
+        } else {
+            Vertices.rotate(this[VERTICES], this.angularVelocity, this.position);
+            this.axes = this.axes.map(a => a.rotate(this.angularVelocity));
+            this.bounds = Bounds.fromVertices(this[VERTICES]);
+        }
 
         // And now position
         this.previousPosition = this.position;
