@@ -355,6 +355,12 @@ export const solveVelocity = (collisions) => {
             // and represents the ratio between the relative velocities of the bodies before
             // and after the collision.
             const relativeVelocity = contactVelocity1.sub(contactVelocity2);
+            const normalVelocity = relativeVelocity.dot(normal);
+
+            // Do not apply impulses if the vertices are separating
+            if (normalVelocity > 0) {
+                continue;
+            }
 
             // The big magic.
             // https://en.wikipedia.org/wiki/Collision_response#Impulse-based_contact_model
@@ -363,7 +369,7 @@ export const solveVelocity = (collisions) => {
             const r2crossN = r2.cross(normal);
             const impulse =
                 (
-                    (1 + restitution) * relativeVelocity.dot(normal)
+                    (1 + restitution) * normalVelocity
                 )
                 /
                 (

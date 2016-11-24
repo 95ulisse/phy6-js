@@ -30,6 +30,7 @@
 
         var square2 = new Body({
             position: new Vector(460, 150),
+            restitution: 1,
             vertices: [
                 new Vector(-10, -10),
                 new Vector(10, -10),
@@ -41,7 +42,7 @@
         var bar = new Body({
             position: new Vector(300, 200),
             isStatic: true,
-            angle: Math.PI / 18,
+            //angle: Math.PI / 18,
             vertices: [
                 new Vector(-290, -10),
                 new Vector(290, -10),
@@ -61,13 +62,14 @@
             ]
         });
 
-        var engine = new Engine([ square, /*square2,*/ bar, bar2 ]);
+        var engine = new Engine([ square, /*square2,*/ bar, bar2 ], {
+            gravity: new Vector(0, 0.001)
+        });
 
         new Renderer(engine, document.getElementsByTagName('canvas')[0], {
             background: '#DDD',
             showWireframe: true,
-            showFPS: true,
-            showBounds: true
+            showFPS: true
         }).start();
 
         const timer = new Timer();

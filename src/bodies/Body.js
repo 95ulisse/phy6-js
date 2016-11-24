@@ -35,7 +35,8 @@ export default class Body extends EventEmitter {
             density: 0.001,
             isStatic: false,
             slop: 0.05,
-            restitution: 0.5
+            restitution: 0.5,
+            frictionAir: 0.01
         }, options);
 
         // Properties must be set in order to make sure that the user can override
@@ -54,6 +55,7 @@ export default class Body extends EventEmitter {
             'torque',
             'slop',
             'restitution',
+            'frictionAir',
 
             // Overrides of computed values
             'area',
@@ -186,14 +188,15 @@ export default class Body extends EventEmitter {
         const prevVelocity = this.position.sub(this.previousPosition);
         const correction1 = dt.delta / dt.lastDelta;
         const correction2 = 0.5 * dt.delta * (dt.delta + dt.lastDelta);
+        const frictionAir = 1 - this.frictionAir;
 
         // Update the velocity using Verlet integration
         // https://en.wikipedia.org/wiki/Verlet_integration#Non-constant_time_differences
-        this.velocity.x = prevVelocity.x * correction1 + (this.force.x / this.mass) * correction2;
-        this.velocity.y = prevVelocity.y * correction1 + (this.force.y / this.mass) * correction2;
+        this.velocity.x = prevVelocity.x * frictionAir * correction1 + (this.force.x / this.mass) * correction2;
+        this.velocity.y = prevVelocity.y * frictionAir * correction1 + (this.force.y / this.mass) * correction2;
 
         // Always using Verlet, update the angle and angular velocity
-        this.angularVelocity = (this.angle - this.previousAngle) * correction1 + (this.torque / this.inertia) * correction2;
+        this.angularVelocity = (this.angle - this.previousAngle) * frictionAir * correction1 + (this.torque / this.inertia) * correction2;
         this.previousAngle = this.angle;
         this[ANGLE] += this.angularVelocity;
 
