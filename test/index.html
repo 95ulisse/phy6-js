@@ -14,57 +14,23 @@
 
         var Vector = phy6.Vector,
             Body = phy6.Body,
+            BodyFactory = phy6.BodyFactory,
             Engine = phy6.Engine,
             Renderer = phy6.Renderer,
             Timer = phy6.Timer;
 
-        var square = new Body({
-            position: new Vector(110, 100),
-            restitution: 0.7,
-            vertices: [
-                new Vector(-10, -10),
-                new Vector(10, -10),
-                new Vector(10, 10),
-                new Vector(-10, 10)
-            ]
-        });
+        var square = BodyFactory.rect(100, 100, 30, 30, { restitution: 0.7 });
 
-        var square2 = new Body({
-            position: new Vector(460, 100),
-            restitution: 0.9,
-            vertices: [
-                new Vector(-10, -10),
-                new Vector(10, -10),
-                new Vector(10, 10),
-                new Vector(-10, 10)
-            ]
-        });
+        var square2 = BodyFactory.rect(450, 100, 30, 30, { restitution: 0.9 });
 
-        var bar = new Body({
-            position: new Vector(300, 200),
+        var cage = BodyFactory.cage(0, 0, 600, 450, 40, {
             isStatic: true,
-            restitution: 0,
-            //angle: Math.PI / 18,
-            vertices: [
-                new Vector(-290, -10),
-                new Vector(290, -10),
-                new Vector(290, 10),
-                new Vector(-290, 10)
-            ]
+            restitution: 0
         });
 
-        var bar2 = new Body({
-            position: new Vector(590, 200),
-            isStatic: true,
-            vertices: [
-                new Vector(-5, -30),
-                new Vector(5, -30),
-                new Vector(5, 30),
-                new Vector(-5, 30)
-            ]
-        });
+        var bodies = Array.prototype.concat.apply([ square, square2 ], cage);
 
-        var engine = new Engine([ square, square2, bar, bar2 ], {
+        var engine = new Engine(bodies, {
             gravity: new Vector(0, 0.001)
         });
 
@@ -79,11 +45,6 @@
         const timer = new Timer();
         timer.on('tick', engine.update.bind(engine));
         timer.start();
-
-        square.on('sleepEnter', console.info.bind(console, 'SQUARE ENTERS SLEEP'));
-        square.on('sleepExit', console.info.bind(console, 'SQUARE EXITS SLEEP'));
-        bar.on('sleepEnter', console.info.bind(console, 'BAR ENTERS SLEEP'));
-        bar.on('sleepExit', console.info.bind(console, 'BAR EXITS SLEEP'));
 
     })();
     </script>
