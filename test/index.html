@@ -20,6 +20,7 @@
 
         var square = new Body({
             position: new Vector(110, 100),
+            restitution: 0.7,
             vertices: [
                 new Vector(-10, -10),
                 new Vector(10, -10),
@@ -29,8 +30,8 @@
         });
 
         var square2 = new Body({
-            position: new Vector(460, 150),
-            restitution: 1,
+            position: new Vector(460, 100),
+            restitution: 0.9,
             vertices: [
                 new Vector(-10, -10),
                 new Vector(10, -10),
@@ -42,6 +43,7 @@
         var bar = new Body({
             position: new Vector(300, 200),
             isStatic: true,
+            restitution: 0,
             //angle: Math.PI / 18,
             vertices: [
                 new Vector(-290, -10),
@@ -62,7 +64,7 @@
             ]
         });
 
-        var engine = new Engine([ square, /*square2,*/ bar, bar2 ], {
+        var engine = new Engine([ square, square2, bar, bar2 ], {
             gravity: new Vector(0, 0.001)
         });
 

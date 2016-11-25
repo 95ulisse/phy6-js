@@ -133,7 +133,7 @@ export default class Vector {
      *    @return {Vector} New vector perpendicular to this one.
      */
     perp() {
-        return new Vector(this.y, -this.x);
+        return new Vector(-this.y, this.x);
     }
 
     /**

@@ -36,6 +36,7 @@ export default class Body extends EventEmitter {
             isStatic: false,
             slop: 0.05,
             restitution: 0.5,
+            friction: 0.1,
             frictionAir: 0.01
         }, options);
 
@@ -55,6 +56,7 @@ export default class Body extends EventEmitter {
             'torque',
             'slop',
             'restitution',
+            'friction',
             'frictionAir',
 
             // Overrides of computed values

@@ -116,6 +116,7 @@ const twoNearestVertices = (target, vertices, normal) => {
  *    properties of the bodies:
  *    - `slop`
  *    - `restitution`
+ *    - `friction`
  *
  *    @param  {Body} body1 - First body.
  *    @param  {Body} body2 - Second body.
@@ -161,20 +162,20 @@ export const test = (body1, body2) => {
 
     const body1Contacts = twoNearestVertices(body1.position, body2.vertices, result.normal);
     if (Vertices.contains(body1.vertices, body1Contacts[0])) {
-        result.contacts.push(body1Contacts[0]);
+        result.contacts.push({ vertex: body1Contacts[0] });
     }
     if (Vertices.contains(body1.vertices, body1Contacts[1])) {
-        result.contacts.push(body1Contacts[1]);
+        result.contacts.push({ vertex: body1Contacts[1] });
     }
 
     if (result.contacts.length < 2) {
 
         const body2Contacts = twoNearestVertices(body2.position, body1.vertices, result.normal.scalar(-1));
         if (Vertices.contains(body2.vertices, body2Contacts[0])) {
-            result.contacts.push(body2Contacts[0]);
+            result.contacts.push({ vertex: body2Contacts[0] });
         }
         if (result.contacts.length < 2 && Vertices.contains(body2.vertices, body2Contacts[1])) {
-            result.contacts.push(body2Contacts[1]);
+            result.contacts.push({ vertex: body2Contacts[1]});
         }
 
     }
@@ -182,6 +183,7 @@ export const test = (body1, body2) => {
     // Other useful properties
     result.slop = Math.max(body1.slop, body2.slop);
     result.restitution = Math.max(body1.restitution, body2.restitution);
+    result.friction = Math.min(body1.friction, body2.friction);
 
     return result;
 
@@ -330,9 +332,10 @@ export const solveVelocity = (collisions) => {
             tangent,
             contacts,
             depth,
-            restitution
+            restitution,
+            friction,
+            separation
         } = collision;
-        const contactShare = 1 / contacts.length;
 
         // Update velocities
         body1.velocity = body1.position.sub(body1.previousPosition);
@@ -346,8 +349,8 @@ export const solveVelocity = (collisions) => {
             // The contact point is the point common to both bodies on which the collision happened.
             // We now need to compute the total velocity of this point as it belongs to both bodies,
             // which is just the sum of the tangential and linear velocities.
-            const r1 = contact.sub(body1.position);
-            const r2 = contact.sub(body2.position);
+            const r1 = contact.vertex.sub(body1.position);
+            const r2 = contact.vertex.sub(body2.position);
             const contactVelocity1 = r1.perp().scalar(body1.angularVelocity).add(body1.velocity);
             const contactVelocity2 = r2.perp().scalar(body2.angularVelocity).add(body2.velocity);
 
@@ -356,31 +359,51 @@ export const solveVelocity = (collisions) => {
             // and after the collision.
             const relativeVelocity = contactVelocity1.sub(contactVelocity2);
             const normalVelocity = relativeVelocity.dot(normal);
-
-            // Do not apply impulses if the vertices are separating
-            if (normalVelocity > 0) {
-                continue;
-            }
+            const tangentVelocity = relativeVelocity.dot(tangent);
 
             // The big magic.
             // https://en.wikipedia.org/wiki/Collision_response#Impulse-based_contact_model
             // http://chrishecker.com/images/e/e7/Gdmphys3.pdf
             const r1crossN = r1.cross(normal);
             const r2crossN = r2.cross(normal);
-            const impulse =
-                (
-                    (1 + restitution) * normalVelocity
-                )
-                /
-                (
-                    body1.invMass + body2.invMass +
-                    (body1.invInertia * r1crossN * r1crossN) +
-                    (body2.invInertia * r2crossN * r2crossN)
-                );
-            const totalImpulse = normal.scalar(contactShare * impulse);
+            const denominator = (
+                body1.invMass + body2.invMass +
+                (body1.invInertia * r1crossN * r1crossN) +
+                (body2.invInertia * r2crossN * r2crossN)
+            ) * contacts.length;
+            let normalImpulse = (1 + restitution) * normalVelocity / denominator;
+
+            // Friction
+            const normalForce = clamp(separation + normalVelocity, 0, 1) * 5;
+            let tangentImpulse = tangentVelocity;
+            let maxFriction = Infinity;
+            if (Math.abs(tangentVelocity) > friction * normalForce) {
+                maxFriction = Math.abs(tangentVelocity);
+                tangentImpulse = clamp(friction * Math.sign(tangentVelocity), -maxFriction, maxFriction);
+            }
+            tangentImpulse /= denominator;
+
+            // Solve resting collisions separately using Erin Catto's method (GDC 2006)
+            if (normalVelocity < 0 && normalVelocity * normalVelocity > RESTING_THRESH) {
+                contact.normalImpulse = 0;
+            } else {
+                contact.normalImpulse = contact.normalImpulse || 0;
+                const temp = contact.normalImpulse;
+                contact.normalImpulse = Math.min(contact.normalImpulse + normalImpulse, 0);
+                normalImpulse = contact.normalImpulse - temp;
+            }
+            if (tangentVelocity * tangentVelocity > RESTING_THRESH) {
+                contact.tangentImpulse = 0;
+            } else {
+                contact.tangentImpulse = contact.tangentImpulse || 0;
+                const temp = contact.tangentImpulse;
+                contact.tangentImpulse = clamp(contact.tangentImpulse + tangentImpulse, -maxFriction, maxFriction);
+                tangentImpulse = contact.tangentImpulse - temp;
+            }
 
             // Apply impulse. Remember that the impulse is the change in momentum,
             // that's why we divide by the mass/inertia.
+            const totalImpulse = normal.scalar(normalImpulse).add(tangent.scalar(tangentImpulse));
             if (!body1.isStatic) {
                 body1.previousPosition = body1.previousPosition.add(totalImpulse.scalar(body1.invMass));
                 body1.previousAngle += r1.cross(totalImpulse) * body1.invInertia;
