@@ -43,6 +43,17 @@ const drawBodyWireframe = drawFuncionFactory('wireframe', false, (context, b) =>
 
 });
 
+const drawSleeping = drawFuncionFactory('sleeping', false, (context, b) => {
+
+    // Redraws the body shape, but with a different color
+    if (b.isSleeping) {
+        context.moveTo(b.vertices[0].x, b.vertices[0].y);
+        b.vertices.forEach(v => context.lineTo(v.x, v.y));
+        context.lineTo(b.vertices[0].x, b.vertices[0].y);
+    }
+
+});
+
 const drawBodyAxes = drawFuncionFactory('axes', false, (context, b) => {
 
     // Axes
@@ -91,6 +102,11 @@ export default class Renderer {
         this._canvas = canvas;
         this._options = extend({
             background: 'transparent',
+
+            showSleeping: false,
+            sleepingWidth: 1.5,
+            sleepingStyle: '#eee',
+            sleepingDash: [5, 5],
 
             showWireframe: true,
             wireframeWidth: 1.5,
@@ -170,6 +186,11 @@ export default class Renderer {
         // Draw wireframes
         if (options.showWireframe) {
             drawBodyWireframe(context, engine.bodies, options);
+        }
+
+        // A graphical feedback for sleeping bodies
+        if (options.showSleeping) {
+            drawSleeping(context, engine.bodies, options);
         }
 
         // Axes

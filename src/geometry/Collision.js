@@ -268,17 +268,17 @@ export const solvePosition = (collisions) => {
 
         // If one of the two bodies is static, double the separation,
         // since only one of the two will move.
-        if (body1.isStatic || body2.isStatic) {
+        if (!body1.shouldUpdate || !body2.shouldUpdate) {
             separation *= 2;
         }
 
-        if (!body1.isStatic) {
+        if (body1.shouldUpdate) {
             const contactShare = 1 / body1[TOTAL_CONTACTS];
             body1[POSITION_IMPULSE].x += normal.x * separation * contactShare;
             body1[POSITION_IMPULSE].y += normal.y * separation * contactShare;
         }
 
-        if (!body2.isStatic) {
+        if (body2.shouldUpdate) {
             const contactShare = 1 / body2[TOTAL_CONTACTS];
             body2[POSITION_IMPULSE].x += normal.x * separation * contactShare;
             body2[POSITION_IMPULSE].y += normal.y * separation * contactShare;
@@ -404,11 +404,11 @@ export const solveVelocity = (collisions) => {
             // Apply impulse. Remember that the impulse is the change in momentum,
             // that's why we divide by the mass/inertia.
             const totalImpulse = normal.scalar(normalImpulse).add(tangent.scalar(tangentImpulse));
-            if (!body1.isStatic) {
+            if (body1.shouldUpdate) {
                 body1.previousPosition = body1.previousPosition.add(totalImpulse.scalar(body1.invMass));
                 body1.previousAngle += r1.cross(totalImpulse) * body1.invInertia;
             }
-            if (!body2.isStatic) {
+            if (body2.shouldUpdate) {
                 body2.previousPosition = body2.previousPosition.sub(totalImpulse.scalar(body2.invMass));
                 body2.previousAngle -= r2.cross(totalImpulse) * body2.invInertia;
             }

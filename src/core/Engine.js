@@ -3,6 +3,102 @@ import EventEmitter from 'eventemitter3';
 import Vector from '../geometry/Vector';
 import * as Bounds from '../geometry/Bounds';
 import * as Collision from '../geometry/Collision';
+import { ISSLEEPING } from '../bodies/Body';
+
+const SLEEPING_COUNT = Symbol('sleepingCount');
+const SLEEPING_MAX_COUNT = 60;
+const SLEEPING_MAX_MOTION = 0.015;
+
+/**
+ *    Actually sets the `isSleeping` property of the given object,
+ *    updating other needed properties and firing the events `sleepEnter` and `sleepExit`.
+ */
+const setSleeping = (body, asleep) => {
+
+    if (body[ISSLEEPING] === asleep) {
+        return;
+    }
+
+    // Updates all the needed properties
+    body[ISSLEEPING] = asleep;
+    if (asleep) {
+
+        // Zeroes all the velocities
+        body.previousPosition = body.position;
+        body.previousAngle = body.angle;
+        body.velocity = new Vector(0, 0);
+        body.angularVelocity = 0;
+
+        body.emit('sleepEnter');
+
+    } else {
+
+        // Resets the sleep counter
+        body[SLEEPING_COUNT] = 0;
+
+        body.emit('sleepExit');
+
+    }
+
+};
+
+/**
+ *    Updates the property `isSleeping` of the given bodies.
+ */
+const updateSleeping = (bodies) => {
+    for (const b of bodies) {
+
+        // If a body has a force on it, it must be awake
+        if (b.force.x !== 0 || b.force.y !== 0 || b.torque !== 0) {
+            setSleeping(b, false);
+            continue;
+        }
+
+        // Approximate value representing the total (linear and angular) motion of the body
+        const motion = b.velocity.lengthSquared() + b.angularVelocity * b.angularVelocity;
+
+        // Puts the body asleep if has very little motion for too much time
+        b[SLEEPING_COUNT] = b[SLEEPING_COUNT] || 0;
+        if (motion < SLEEPING_MAX_MOTION) {
+            b[SLEEPING_COUNT] = Math.min(b[SLEEPING_COUNT] + 1, SLEEPING_MAX_COUNT);
+
+            if (b[SLEEPING_COUNT] >= SLEEPING_MAX_COUNT) {
+                setSleeping(b, true);
+            }
+        } else if (b[SLEEPING_COUNT] > 0) {
+            b[SLEEPING_COUNT]--;
+        }
+
+    }
+};
+
+/**
+ *    Updates the `isSleeping` property of the bodies involved in collisions.
+ */
+const updateSleepingCollisions = (collisions) => {
+    for (const collision of collisions) {
+
+        const { body1, body2 } = collision;
+
+        // Both bodies are sleeping, or one of them is static:
+        // do not try to wake up anyone!
+        if ((body1.isSleeping && body2.isSleeping) || body1.isStatic || body2.isStatic) {
+            continue;
+        }
+
+        // We are try to wake up someone before collision solving, so, who can we wake up?
+        // One of the two bodies is awake and is colliding with the other (which is asleep),
+        // so we check if the motion of the awake body is above the threshold, and wake up
+        // the other body.
+        const awakeBody = body1.isSleeping ? body2 : body1;
+        const asleepBody = body1.isSleeping ? body1 : body2;
+        const awakeBodyMotion = awakeBody.velocity.lengthSquared() + awakeBody.angularVelocity * awakeBody.angularVelocity;
+        if (awakeBodyMotion > SLEEPING_MAX_MOTION) {
+            setSleeping(asleepBody, false);
+        }
+
+    }
+};
 
 /**
  *    Core physics engine of `phy6-js`.
@@ -42,19 +138,22 @@ export default class Engine extends EventEmitter {
 
         const { options } = this;
 
-        // Applies gravity to all the bodies
-        for (const b of this.bodies) {
-            b.force = b.force.add(options.gravity.scalar(b.mass));
-        }
-
         // We emit the `preUpdate` event to let the user change body properties
         // before the actual update. This step is crucial to let the forces change
         // at every update.
         this.emit('preUpdate');
 
+        // Updates the sleeping status of the bodies
+        updateSleeping(this.bodies);
+
+        // Applies gravity to all the bodies
+        for (const b of this.bodies) {
+            b.force = b.force.add(options.gravity.scalar(b.mass));
+        }
+
         // Updates all the bodies
         for (let b of this.bodies) {
-            if (!b.isStatic) {
+            if (b.shouldUpdate) {
                 b.update(dt);
             }
         }
@@ -75,8 +174,8 @@ export default class Engine extends EventEmitter {
             for (const b2 of this.bodies) {
                 if (b1 !== b2 && Bounds.overlap(b1.bounds, b2.bounds)) {
 
-                    // Do not consider static objects colliding toghether
-                    if (b1.isStatic && b2.isStatic) {
+                    // Do not consider static or sleeping objects colliding toghether
+                    if (!b1.shouldUpdate && !b2.shouldUpdate) {
                         continue;
                     }
 
@@ -105,6 +204,9 @@ export default class Engine extends EventEmitter {
                 collisions.push(collisionData);
             }
         }
+
+        // Updates the sleeping status of the bodies involved in collisions
+        updateSleepingCollisions(collisions);
 
         // Solve iteratively the collision positions
         Collision.preSolvePosition(collisions);

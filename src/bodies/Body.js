@@ -8,6 +8,7 @@ export const VERTICES = Symbol('vertices');
 export const POSITION = Symbol('position');
 export const ANGLE = Symbol('angle');
 export const ISSTATIC = Symbol('isStatic');
+export const ISSLEEPING = Symbol('isSleeping');
 
 /**
  *    Body involved in a physical simulation.
@@ -72,6 +73,9 @@ export default class Body extends EventEmitter {
                 this[k] = options[k];
             }
         }
+
+        // A body is always awake when created
+        this[ISSLEEPING] = false;
 
     }
 
@@ -170,6 +174,14 @@ export default class Body extends EventEmitter {
         }
     }
 
+    get isSleeping() {
+        return this[ISSLEEPING];
+    }
+
+    get shouldUpdate() {
+        return !(this.isStatic || this[ISSLEEPING]);
+    }
+
     /**
      *    Advances the physical simulation of `dt` seconds.
      *    @param {number|object} dt - Amount of time to advance the simulation.
@@ -179,7 +191,7 @@ export default class Body extends EventEmitter {
      */
     update(dt) {
 
-        if (this.isStatic) {
+        if (!this.shouldUpdate) {
             return;
         }
 

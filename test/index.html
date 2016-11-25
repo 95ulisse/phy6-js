@@ -72,15 +72,18 @@
             background: '#DDD',
             showWireframe: true,
             showFPS: true,
-            showCollisions: true
+            showCollisions: true,
+            showSleeping: true
         }).start();
 
         const timer = new Timer();
         timer.on('tick', engine.update.bind(engine));
         timer.start();
 
-        square.on('collision', console.info.bind(console, 'SQUARE COLLISION'));
-        bar.on('collision', console.info.bind(console, 'BAR COLLISION'));
+        square.on('sleepEnter', console.info.bind(console, 'SQUARE ENTERS SLEEP'));
+        square.on('sleepExit', console.info.bind(console, 'SQUARE EXITS SLEEP'));
+        bar.on('sleepEnter', console.info.bind(console, 'BAR ENTERS SLEEP'));
+        bar.on('sleepExit', console.info.bind(console, 'BAR EXITS SLEEP'));
 
     })();
     </script>
