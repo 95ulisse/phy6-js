@@ -130,7 +130,7 @@ export default class Engine extends EventEmitter {
             b.torque = 0;
         }
 
-        this.emit('update');
+        this.emit('update', collisions);
 
     }
 

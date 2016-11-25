@@ -2,11 +2,16 @@ import extend from 'extend';
 import autobind from 'autobind-decorator';
 import { now } from '../core/util';
 
-const drawFuncionFactory = (optionsName, f) => {
+const drawFuncionFactory = (optionsName, fill, f) => {
     return (context, bodies, options) => {
 
         context.beginPath();
         bodies.forEach(b => f(context, b));
+
+        if (fill) {
+            context.fillStyle = options[optionsName + 'Fill'];
+            context.fill();
+        }
 
         context.setLineDash(options[optionsName + 'Dash']);
         context.lineWidth = options[optionsName + 'Width'];
@@ -16,7 +21,7 @@ const drawFuncionFactory = (optionsName, f) => {
     };
 };
 
-const drawBodyBounds = drawFuncionFactory('bounds', (context, b) => {
+const drawBodyBounds = drawFuncionFactory('bounds', false, (context, b) => {
 
     // Draws the rectangle of the bounds
     const min = b.bounds.min;
@@ -29,7 +34,7 @@ const drawBodyBounds = drawFuncionFactory('bounds', (context, b) => {
 
 });
 
-const drawBodyWireframe = drawFuncionFactory('wireframe', (context, b) => {
+const drawBodyWireframe = drawFuncionFactory('wireframe', false, (context, b) => {
 
     // Draws the path for the hull
     context.moveTo(b.vertices[0].x, b.vertices[0].y);
@@ -38,7 +43,7 @@ const drawBodyWireframe = drawFuncionFactory('wireframe', (context, b) => {
 
 });
 
-const drawBodyAxes = drawFuncionFactory('axes', (context, b) => {
+const drawBodyAxes = drawFuncionFactory('axes', false, (context, b) => {
 
     // Axes
     b.axes.forEach(a => {
@@ -48,7 +53,19 @@ const drawBodyAxes = drawFuncionFactory('axes', (context, b) => {
 
 });
 
-const drawBodyVelocities = drawFuncionFactory('velocities', (context, b) => {
+const drawCollisions = drawFuncionFactory('collisions', true, (context, collision) => {
+
+    // Highlight a collision vertex with a white circle
+    const r = 4;
+    for (let i = 0; i < collision.contacts.length; i++) {
+        const contact = collision.contacts[i].vertex;
+        context.moveTo(contact.x + r, contact.y);
+        context.arc(contact.x, contact.y, r, 0, Math.PI * 2);
+    }
+
+});
+
+const drawBodyVelocities = drawFuncionFactory('velocities', false, (context, b) => {
 
     // Velocities
     if (b.velocity.x !== 0 || b.velocity.y !== 0) {
@@ -90,6 +107,12 @@ export default class Renderer {
             axesStyle: 'orange',
             axesDash: [0, 0],
 
+            showCollisions: false,
+            collisionsWidth: 1,
+            collisionsStyle: '#000',
+            collisionsDash: [0, 0],
+            collisionsFill: '#9975B9',
+
             showVelocities: true,
             velocitiesWidth: 1.5,
             velocitiesStyle: '#06C',
@@ -123,7 +146,7 @@ export default class Renderer {
      *    On every update we just redraw everything.
      */
     @autobind
-    _onEngineUpdate() {
+    _onEngineUpdate(collisions) {
         const { _engine: engine, _context: context, _canvas: canvas, _options: options } = this;
 
         // First step: a big cleanup.
@@ -152,6 +175,11 @@ export default class Renderer {
         // Axes
         if (options.showAxes) {
             drawBodyAxes(context, engine.bodies, options);
+        }
+
+        // Collision vertices
+        if (options.showCollisions) {
+            drawCollisions(context, collisions, options);
         }
 
         // Velocities
