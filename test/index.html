@@ -32,9 +32,7 @@
 
         var bodies = Array.prototype.concat.apply(cage, stack.concat(bigOne));
 
-        var engine = new Engine(bodies, {
-            gravity: new Vector(0, 0.001)
-        });
+        var engine = new Engine(bodies);
 
         new Renderer(engine, document.getElementsByTagName('canvas')[0], {
             background: '#DDD',

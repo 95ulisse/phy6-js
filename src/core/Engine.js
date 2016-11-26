@@ -129,8 +129,8 @@ export default class Engine extends EventEmitter {
         super();
         this.bodies = bodies;
         this.options = extend({
-            positionIterations: 6,
-            velocityIterations: 4,
+            positionIterations: 10,
+            velocityIterations: 15,
             gravity: new Vector(0, 0.001),
             enableSleeping: true
         }, options);
