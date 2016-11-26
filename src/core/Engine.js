@@ -131,7 +131,8 @@ export default class Engine extends EventEmitter {
         this.options = extend({
             positionIterations: 6,
             velocityIterations: 4,
-            gravity: new Vector(0, 0.001)
+            gravity: new Vector(0, 0.001),
+            enableSleeping: true
         }, options);
     }
 
@@ -156,7 +157,9 @@ export default class Engine extends EventEmitter {
         this.emit('preUpdate');
 
         // Updates the sleeping status of the bodies
-        updateSleeping(this.bodies);
+        if (options.enableSleeping) {
+            updateSleeping(this.bodies);
+        }
 
         // Applies gravity to all the bodies
         for (const b of this.bodies) {
@@ -218,7 +221,9 @@ export default class Engine extends EventEmitter {
         }
 
         // Updates the sleeping status of the bodies involved in collisions
-        updateSleepingCollisions(collisions);
+        if (options.enableSleeping) {
+            updateSleepingCollisions(collisions);
+        }
 
         // Solve iteratively the collision positions
         Collision.preSolvePosition(collisions);
