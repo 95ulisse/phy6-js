@@ -280,8 +280,8 @@ export const solvePosition = (collisions) => {
 
         if (body2.shouldUpdate) {
             const contactShare = 1 / body2[TOTAL_CONTACTS];
-            body2[POSITION_IMPULSE].x += normal.x * separation * contactShare;
-            body2[POSITION_IMPULSE].y += normal.y * separation * contactShare;
+            body2[POSITION_IMPULSE].x -= normal.x * separation * contactShare;
+            body2[POSITION_IMPULSE].y -= normal.y * separation * contactShare;
         }
 
     }
