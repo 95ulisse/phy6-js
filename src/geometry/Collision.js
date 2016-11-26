@@ -248,7 +248,7 @@ export const solvePosition = (collisions) => {
         //
         // Note also that this is the reason behind having a multi-iteration resolution:
         // it's too complicated to solve all these constraints at once!
-        collision.separation = normal.dot(separation) - slop;
+        collision.separation = normal.dot(separation);
 
     }
 
@@ -263,7 +263,8 @@ export const solvePosition = (collisions) => {
             body1,
             body2,
             normal,
-            separation
+            separation,
+            slop
         } = collision;
 
         // If one of the two bodies is static, double the separation,
@@ -274,14 +275,14 @@ export const solvePosition = (collisions) => {
 
         if (body1.shouldUpdate) {
             const contactShare = 1 / body1[TOTAL_CONTACTS];
-            body1[POSITION_IMPULSE].x += normal.x * separation * contactShare;
-            body1[POSITION_IMPULSE].y += normal.y * separation * contactShare;
+            body1[POSITION_IMPULSE].x += normal.x * (separation - slop) * contactShare;
+            body1[POSITION_IMPULSE].y += normal.y * (separation - slop) * contactShare;
         }
 
         if (body2.shouldUpdate) {
             const contactShare = 1 / body2[TOTAL_CONTACTS];
-            body2[POSITION_IMPULSE].x -= normal.x * separation * contactShare;
-            body2[POSITION_IMPULSE].y -= normal.y * separation * contactShare;
+            body2[POSITION_IMPULSE].x -= normal.x * (separation - slop) * contactShare;
+            body2[POSITION_IMPULSE].y -= normal.y * (separation - slop) * contactShare;
         }
 
     }

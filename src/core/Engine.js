@@ -5,9 +5,11 @@ import * as Bounds from '../geometry/Bounds';
 import * as Collision from '../geometry/Collision';
 import { ISSLEEPING } from '../bodies/Body';
 
+const MOTION = Symbol('motion');
 const SLEEPING_COUNT = Symbol('sleepingCount');
 const SLEEPING_MAX_COUNT = 60;
-const SLEEPING_MAX_MOTION = 0.015;
+const SLEEPING_MAX_MOTION_FOR_SLEEP = 0.04;
+const SLEEPING_MIN_MOTION_FOR_WAKEUP = 0.09;
 
 /**
  *    Actually sets the `isSleeping` property of the given object,
@@ -28,6 +30,7 @@ const setSleeping = (body, asleep) => {
         body.previousAngle = body.angle;
         body.velocity = new Vector(0, 0);
         body.angularVelocity = 0;
+        body[MOTION] = 0;
 
         body.emit('sleepEnter');
 
@@ -57,9 +60,18 @@ const updateSleeping = (bodies) => {
         // Approximate value representing the total (linear and angular) motion of the body
         const motion = b.velocity.lengthSquared() + b.angularVelocity * b.angularVelocity;
 
+        // Use an average of the previous motion and the current one.
+        // The bias is to aid stability of stacks.
+        if (typeof b[MOTION] === 'undefined') {
+            b[MOTION] = 0;
+        }
+        const minMotion = Math.min(b[MOTION], motion);
+        const maxMotion = Math.max(b[MOTION], motion);
+        b[MOTION] = 0.9 * minMotion + 0.1 * maxMotion;
+
         // Puts the body asleep if has very little motion for too much time
         b[SLEEPING_COUNT] = b[SLEEPING_COUNT] || 0;
-        if (motion < SLEEPING_MAX_MOTION) {
+        if (b[MOTION] < SLEEPING_MAX_MOTION_FOR_SLEEP) {
             b[SLEEPING_COUNT] = Math.min(b[SLEEPING_COUNT] + 1, SLEEPING_MAX_COUNT);
 
             if (b[SLEEPING_COUNT] >= SLEEPING_MAX_COUNT) {
@@ -93,7 +105,7 @@ const updateSleepingCollisions = (collisions) => {
         const awakeBody = body1.isSleeping ? body2 : body1;
         const asleepBody = body1.isSleeping ? body1 : body2;
         const awakeBodyMotion = awakeBody.velocity.lengthSquared() + awakeBody.angularVelocity * awakeBody.angularVelocity;
-        if (awakeBodyMotion > SLEEPING_MAX_MOTION) {
+        if (awakeBodyMotion > SLEEPING_MIN_MOTION_FOR_WAKEUP) {
             setSleeping(asleepBody, false);
         }
 

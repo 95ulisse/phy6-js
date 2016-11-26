@@ -19,16 +19,18 @@
             Renderer = phy6.Renderer,
             Timer = phy6.Timer;
 
-        var square = BodyFactory.rect(100, 100, 30, 30, { restitution: 0.7 });
+        var bigOne = BodyFactory.rect(100, 30, 200, 100);
 
-        var square2 = BodyFactory.rect(450, 100, 30, 30, { restitution: 0.9 });
+        var stack = BodyFactory.stack(100, 310, 5, 4, (x, y) =>
+            BodyFactory.rect(x, y, 30, 30)
+        );
 
-        var cage = BodyFactory.cage(0, 0, 600, 450, 40, {
+        var cage = BodyFactory.cage(0, 0, 600, 450, 20, {
             isStatic: true,
             restitution: 0
         });
 
-        var bodies = Array.prototype.concat.apply([ square, square2 ], cage);
+        var bodies = Array.prototype.concat.apply(cage, stack.concat(bigOne));
 
         var engine = new Engine(bodies, {
             gravity: new Vector(0, 0.001)
