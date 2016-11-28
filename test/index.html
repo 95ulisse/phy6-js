@@ -25,12 +25,16 @@
             BodyFactory.rect(x, y, 30, 30)
         );
 
+        var rotationTest = BodyFactory.rect(500, 300, 60, 60, {
+            angle: Math.PI / 5
+        });
+
         var cage = BodyFactory.cage(0, 0, 600, 450, 20, {
             isStatic: true,
             restitution: 0
         });
 
-        var bodies = Array.prototype.concat.apply(cage, stack.concat(bigOne));
+        var bodies = Array.prototype.concat.apply(cage, stack.concat(rotationTest, bigOne));
 
         var engine = new Engine(bodies);
 

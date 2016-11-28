@@ -4,6 +4,8 @@ import Vector from './Vector';
  * This module is a collection of useful algorithms to manipulate a group of vertices.
  */
 
+const INERTIA_SCALE = 0.05;
+
 /**
  *    Computes the area identified by a group of vertices.
  *    The vertices must form a convex shape.
@@ -131,6 +133,6 @@ export const inertia = (vertices, mass, c = centroid(certices)) => {
         denominator += cross;
     }
 
-    return (mass / 6) * (numerator / denominator);
+    return INERTIA_SCALE * (mass / 6) * (numerator / denominator);
 
 };

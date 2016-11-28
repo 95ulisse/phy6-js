@@ -7,7 +7,7 @@ import { ISSLEEPING } from '../bodies/Body';
 
 const MOTION = Symbol('motion');
 const SLEEPING_COUNT = Symbol('sleepingCount');
-const SLEEPING_MAX_COUNT = 60;
+const SLEEPING_MAX_COUNT = 90;
 const SLEEPING_MAX_MOTION_FOR_SLEEP = 0.04;
 const SLEEPING_MIN_MOTION_FOR_WAKEUP = 0.09;
 
@@ -72,11 +72,18 @@ const updateSleeping = (bodies) => {
         // Puts the body asleep if has very little motion for too much time
         b[SLEEPING_COUNT] = b[SLEEPING_COUNT] || 0;
         if (b[MOTION] < SLEEPING_MAX_MOTION_FOR_SLEEP) {
-            b[SLEEPING_COUNT] = Math.min(b[SLEEPING_COUNT] + 1, SLEEPING_MAX_COUNT);
 
-            if (b[SLEEPING_COUNT] >= SLEEPING_MAX_COUNT) {
-                setSleeping(b, true);
+            // Note that the body must also have at least 2 contact points:
+            // If we put asleep a body with only one conctact, we might end up with strange
+            // cases where a body falls asleep while in balance on a vertex.
+            if (b[Collision.TOTAL_CONTACTS] >= 2) {
+                b[SLEEPING_COUNT] = Math.min(b[SLEEPING_COUNT] + 1, SLEEPING_MAX_COUNT);
+
+                if (b[SLEEPING_COUNT] >= SLEEPING_MAX_COUNT) {
+                    setSleeping(b, true);
+                }
             }
+            
         } else if (b[SLEEPING_COUNT] > 0) {
             b[SLEEPING_COUNT]--;
         }
@@ -220,13 +227,17 @@ export default class Engine extends EventEmitter {
             }
         }
 
+        // Prepare collisions for position solving.
+        // This step is done before the sleeping because if computes the number
+        // of contacts for each body.
+        Collision.preSolvePosition(collisions);
+
         // Updates the sleeping status of the bodies involved in collisions
         if (options.enableSleeping) {
             updateSleepingCollisions(collisions);
         }
 
         // Solve iteratively the collision positions
-        Collision.preSolvePosition(collisions);
         for (let i = 0; i < options.positionIterations; i++) {
             Collision.solvePosition(collisions);
         }

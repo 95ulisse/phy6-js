@@ -6,7 +6,7 @@ import { clamp } from '../core/util';
 
 const RESTING_THRESH = 6;
 
-const TOTAL_CONTACTS = Symbol('totalContacts');
+export const TOTAL_CONTACTS = Symbol('totalContacts');
 const POSITION_IMPULSE = Symbol('positionImpulse');
 
 // Projects a set of vertices on the given axis and returns the interval
@@ -196,6 +196,10 @@ export const test = (body1, body2) => {
  */
 export const preSolvePosition = (collisions) => {
     for (const c of collisions) {
+        c.body1[TOTAL_CONTACTS] = 0;
+        c.body2[TOTAL_CONTACTS] = 0;
+    }
+    for (const c of collisions) {
         c.body1[TOTAL_CONTACTS] = (c.body1[TOTAL_CONTACTS] || 0) + c.contacts.length;
         c.body2[TOTAL_CONTACTS] = (c.body2[TOTAL_CONTACTS] || 0) + c.contacts.length;
     }
@@ -296,9 +300,6 @@ export const solvePosition = (collisions) => {
  */
 export const postSolvePosition = (bodies) => {
     for (const body of bodies) {
-
-        // Reset contacts count
-        body[TOTAL_CONTACTS] = 0;
 
         // Apply impulse
         const impulse = body[POSITION_IMPULSE];
