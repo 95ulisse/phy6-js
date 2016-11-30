@@ -58,6 +58,7 @@ export default class Timer extends EventEmitter {
      */
     stop() {
         cancelAnimationFrame(this._frameHandle);
+        this._frameHandle = null;
     }
 
     @autobind
@@ -98,7 +99,9 @@ export default class Timer extends EventEmitter {
         this.emit('tick', { delta, lastDelta });
 
         // Before exiting, don't forget that we want to be called again
-        this._frameHandle = requestAnimationFrame(this._onTick);
+        if (this._frameHandle !== null) {
+            this._frameHandle = requestAnimationFrame(this._onTick);
+        }
 
     }
 
