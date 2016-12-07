@@ -6,6 +6,8 @@ import extend from 'extend';
 import Body from './Body';
 import Vector from '../geometry/Vector';
 
+const CIRCLE_EDGES = 20;
+
 /**
  *    Creates a body with a rectangular shape.
  *    @param  {number} x - X coordinate of the upper left corner.
@@ -28,6 +30,31 @@ export const rect = (x, y, width, height, options) => {
             new Vector(halfWidth, halfHeight),
             new Vector(-halfWidth, halfHeight)
         ]
+    }, options));
+
+};
+
+/**
+ *    Creates a body with a circular shape.
+ *    @param  {number} x - X coordinate of the center.
+ *    @param  {number} y - Y coordinate of the center.
+ *    @param  {number} radius - Radius of the circle.
+ *    @param  {object} [options] - Additional options for the body.
+ *    @return {Body} The body created.
+ */
+export const circle = (x, y, radius, options) => {
+
+    const center = new Vector(x, y);
+
+    const vertices = [];
+    const alpha = Math.PI * 2 / CIRCLE_EDGES;
+    for (let i = 0; i < CIRCLE_EDGES; i++) {
+        vertices.push(new Vector(Math.cos(alpha * i) * radius, Math.sin(alpha * i) * radius));
+    }
+
+    return new Body(extend({
+        position: center,
+        vertices: vertices
     }, options));
 
 };

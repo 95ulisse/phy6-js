@@ -183,6 +183,18 @@ export default class Body extends EventEmitter {
     }
 
     /**
+     * Applies a force to this body from the given position
+     * and automatically calculates the resulting torque.
+     * 
+     * @param {Vector} force - Force to apply.
+     * @param {Vector} position - Position (in world coordinates) from which the force will be applied. 
+     */
+    applyForce(force, position) {
+        this.force = this.force.add(force);
+        this.torque += position.sub(this.position).cross(force);
+    }
+
+    /**
      *    Advances the physical simulation of `dt` seconds.
      *    @param {number|object} dt - Amount of time to advance the simulation.
      *    It can also be an object with properties `delta` and `lastDelta` for

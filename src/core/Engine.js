@@ -132,7 +132,7 @@ export default class Engine extends EventEmitter {
      *    @param {Body[]} bodies - Bodies that will take part in the simulation.
      *    @param {object} options - Options to set.
      */
-    constructor(bodies, options) {
+    constructor(bodies = [], options) {
         super();
         this.bodies = bodies;
         this.options = extend({

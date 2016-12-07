@@ -1,5 +1,4 @@
 import extend from 'extend';
-import autobind from 'autobind-decorator';
 import { now } from '../core/util';
 
 const drawFuncionFactory = (optionsName, fill, f) => {
@@ -146,23 +145,21 @@ export default class Renderer {
      */
     start() {
         this._context = this._canvas.getContext('2d');
-        this._engine.on('update', this._onEngineUpdate);
+        this._engine.on('update', this.render.bind(this));
     }
 
     /**
      *    Stops the rendering loop.
      */
     stop() {
-        this._engine.removeListener('update', this._onEngineUpdate);
+        this._engine.removeListener('update', this.render.bind(this));
         this._context = null;
     }
 
     /**
-     *    Callback for the event `update` of the engine.
-     *    On every update we just redraw everything.
+     *    Redraws the current state of the engine.
      */
-    @autobind
-    _onEngineUpdate(collisions) {
+    render(collisions) {
         const { _engine: engine, _context: context, _canvas: canvas, _options: options } = this;
 
         // First step: a big cleanup.
@@ -199,7 +196,7 @@ export default class Renderer {
         }
 
         // Collision vertices
-        if (options.showCollisions) {
+        if (collisions && options.showCollisions) {
             drawCollisions(context, collisions, options);
         }
 
