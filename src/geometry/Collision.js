@@ -200,6 +200,12 @@ export const preSolvePosition = (collisions) => {
         c.body2[TOTAL_CONTACTS] = 0;
     }
     for (const c of collisions) {
+
+        // Triggers detect collisions, but do not affect collision response
+        if (c.body1.isTrigger || c.body2.isTrigger) {
+            continue;
+        }
+
         c.body1[TOTAL_CONTACTS] = (c.body1[TOTAL_CONTACTS] || 0) + c.contacts.length;
         c.body2[TOTAL_CONTACTS] = (c.body2[TOTAL_CONTACTS] || 0) + c.contacts.length;
     }
@@ -231,6 +237,11 @@ export const solvePosition = (collisions) => {
             penetrationVector,
             slop
         } = collision;
+
+        // Triggers detect collisions, but do not affect collision response
+        if (body1.isTrigger || body2.isTrigger) {
+            continue;
+        }
 
         // Initialize the impulse vector if the bodies have not been colliding with anything yet.
         body1[POSITION_IMPULSE] = body1[POSITION_IMPULSE] || new Vector(0, 0);
@@ -270,6 +281,11 @@ export const solvePosition = (collisions) => {
             separation,
             slop
         } = collision;
+
+        // Triggers detect collisions, but do not affect collision response
+        if (body1.isTrigger || body2.isTrigger) {
+            continue;
+        }
 
         // If one of the two bodies is static, double the separation,
         // since only one of the two will move.
@@ -338,6 +354,11 @@ export const solveVelocity = (collisions) => {
             friction,
             separation
         } = collision;
+
+        // Triggers detect collisions, but do not affect collision response
+        if (body1.isTrigger || body2.isTrigger) {
+            continue;
+        }
 
         // Update velocities
         body1.velocity = body1.position.sub(body1.previousPosition);

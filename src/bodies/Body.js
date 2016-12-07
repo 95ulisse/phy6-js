@@ -8,6 +8,7 @@ export const VERTICES = Symbol('vertices');
 export const POSITION = Symbol('position');
 export const ANGLE = Symbol('angle');
 export const ISSTATIC = Symbol('isStatic');
+export const ISTRIGGER = Symbol('isTrigger');
 export const ISSLEEPING = Symbol('isSleeping');
 
 /**
@@ -35,6 +36,7 @@ export default class Body extends EventEmitter {
             torque: 0,
             density: 0.001,
             isStatic: false,
+            isTrigger: false,
             slop: 0.05,
             restitution: 0.5,
             friction: 0.1,
@@ -52,6 +54,7 @@ export default class Body extends EventEmitter {
             'velocity',
             'force',
             'isStatic',
+            'isTrigger',
             'angularVelocity',
             'angle',
             'torque',
@@ -171,6 +174,17 @@ export default class Body extends EventEmitter {
         } else {
             this.mass = this.density * this.area;
             this.invMass = 1 / this.mass;
+        }
+    }
+
+    get isTrigger() {
+        return this[ISTRIGGER];
+    }
+
+    set isTrigger(v) {
+        this[ISTRIGGER] = v;
+        if (v) {
+            this.isStatic = true;
         }
     }
 
