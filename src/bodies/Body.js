@@ -240,6 +240,10 @@ export default class Body extends EventEmitter {
         this.previousAngle = this.angle;
         this[ANGLE] += this.angularVelocity;
 
+        // And now position
+        this.previousPosition = this.position;
+        this[POSITION] = this[POSITION].add(this.velocity);
+
         // Updates the position of the vertices and the bounds
         this[VERTICES] = this[VERTICES].map(v => v.add(this.velocity));
         if (this.angularVelocity == 0) {
@@ -249,10 +253,6 @@ export default class Body extends EventEmitter {
             this.axes = this.axes.map(a => a.rotate(this.angularVelocity));
             this.bounds = Bounds.fromVertices(this[VERTICES]);
         }
-
-        // And now position
-        this.previousPosition = this.position;
-        this[POSITION] = this[POSITION].add(this.velocity);
 
     }
 
