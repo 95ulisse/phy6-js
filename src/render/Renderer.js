@@ -5,7 +5,7 @@ const drawFuncionFactory = (optionsName, fill, f) => {
     return (context, bodies, options) => {
 
         context.beginPath();
-        bodies.forEach(b => f(context, b));
+        bodies.forEach(b => f(context, b, options));
 
         if (fill) {
             context.fillStyle = options[optionsName + 'Fill'];
@@ -33,14 +33,41 @@ const drawBodyBounds = drawFuncionFactory('bounds', false, (context, b) => {
 
 });
 
-const drawBodyWireframe = drawFuncionFactory('wireframe', false, (context, b) => {
+const drawBodyWireframeOrImage = drawFuncionFactory('wireframe', false, (context, b, options) => {
 
-    // Draws the path for the hull
-    context.moveTo(b.vertices[0].x, b.vertices[0].y);
-    b.vertices.forEach(v => context.lineTo(v.x, v.y));
-    context.lineTo(b.vertices[0].x, b.vertices[0].y);
+    if (b.render && b.render.image) {
+
+        // Draw the image instead of the wireframe
+        const { image, width, height, sx, sy, dx, dy } = b.render;
+        context.drawImage(image, sx, sy, width, height, dx + b.position.x, dy + b.position.y, width, height);
+
+    } else if (options.showWireframe) {
+
+        // Draws the path for the hull
+        context.moveTo(b.vertices[0].x, b.vertices[0].y);
+        b.vertices.forEach(v => context.lineTo(v.x, v.y));
+        context.lineTo(b.vertices[0].x, b.vertices[0].y);
+
+    }
 
 });
+
+const drawBodyPattern = (context, bodies, options) => {
+    bodies.forEach(b => {
+        if (b.render && b.render.pattern) {
+
+            // Draws the path for the hull
+            context.beginPath();
+            context.moveTo(b.vertices[0].x, b.vertices[0].y);
+            b.vertices.forEach(v => context.lineTo(v.x, v.y));
+            context.lineTo(b.vertices[0].x, b.vertices[0].y);
+
+            context.fillStyle = context.createPattern(b.render.pattern, 'repeat');
+            context.fill();
+
+        }
+    });
+};
 
 const drawSleeping = drawFuncionFactory('sleeping', false, (context, b) => {
 
@@ -175,14 +202,13 @@ export default class Renderer {
             context.fillRect(0, 0, canvas.width, canvas.height);
         }
 
+        // Draw wireframes or sprites, depending on the single object
+        drawBodyWireframeOrImage(context, engine.bodies, options);
+        drawBodyPattern(context, engine.bodies, options);
+
         // Bounds
         if (options.showBounds) {
             drawBodyBounds(context, engine.bodies, options);
-        }
-
-        // Draw wireframes
-        if (options.showWireframe) {
-            drawBodyWireframe(context, engine.bodies, options);
         }
 
         // A graphical feedback for sleeping bodies
@@ -191,7 +217,7 @@ export default class Renderer {
         }
 
         // Axes
-        if (options.showAxes) {
+        if (options.showAxes && options.showWireframe) {
             drawBodyAxes(context, engine.bodies, options);
         }
 

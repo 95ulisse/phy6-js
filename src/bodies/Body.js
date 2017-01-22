@@ -62,6 +62,7 @@ export default class Body extends EventEmitter {
             'restitution',
             'friction',
             'frictionAir',
+            'render',
 
             // Overrides of computed values
             'area',
