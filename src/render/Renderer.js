@@ -1,6 +1,126 @@
 import extend from 'extend';
 import { now } from '../core/util';
 
+const drawHull = (context, b) => {
+    context.beginPath();
+    context.moveTo(b.vertices[0].x, b.vertices[0].y);
+    b.vertices.forEach(v => context.lineTo(v.x, v.y));
+    context.lineTo(b.vertices[0].x, b.vertices[0].y);
+};
+
+const fillOrStroke = (context, b, name, fill, getOption) => {
+    if (fill) {
+        context.fillStyle = getOption(b, name + 'Fill');
+        context.fill();
+    }
+
+    context.setLineDash(getOption(b, name + 'Dash'));
+    context.lineWidth = getOption(b, name + 'Width');
+    context.strokeStyle = getOption(b, name + 'Style');
+    context.stroke();
+};
+
+const drawSingleBody = (context, b, collisions, getOption) => {
+
+    // If the body is invisible, skip it
+    if (!getOption(b, 'visible')) {
+        return;
+    }
+
+    // Fill the body with a pattern, or just draw the wireframe
+    if (getOption(b, 'showWireframe') || getOption(b, 'pattern')) {
+
+        // Draws the path of the hull
+        drawHull(context, b);
+
+        // Fill the path with the pattern, first
+        const pattern = getOption(b, 'pattern');
+        if (pattern) {
+            context.fillStyle = context.createPattern(pattern, 'repeat');
+            context.fill();
+        }
+
+        // Draw the wireframe, then
+        if (getOption(b, 'showWireframe')) {
+            fillOrStroke(context, b, 'wireframe', false, getOption);
+        }
+
+    }
+
+    // The body is drawn with an image (for sprite animations)
+    if (getOption(b, 'image')) {
+        const image = getOption(b, 'image');
+        const width = getOption(b, 'width');
+        const height = getOption(b, 'height');
+        const sx = getOption(b, 'sx');
+        const sy = getOption(b, 'sy');
+        const dx = getOption(b, 'dx');
+        const dy = getOption(b, 'dy');
+        context.drawImage(image, sx, sy, width, height, dx + b.position.x, dy + b.position.y, width, height);
+    }
+
+    // Draw bounds
+    if (getOption(b, 'showBounds')) {
+        const min = b.bounds.min;
+        const max = b.bounds.max;
+        context.beginPath();
+        context.moveTo(min.x, min.y);
+        context.lineTo(max.x, min.y);
+        context.lineTo(max.x, max.y);
+        context.lineTo(min.x, max.y);
+        context.lineTo(min.x, min.y);
+        fillOrStroke(context, b, 'bounds', false, getOption);
+    }
+
+    // A graphical feedback for sleeping bodies.
+    // Redraws the body shape, but with a different color.
+    if (getOption(b, 'showSleeping') && b.isSleeping) {
+        context.beginPath();
+        context.moveTo(b.vertices[0].x, b.vertices[0].y);
+        b.vertices.forEach(v => context.lineTo(v.x, v.y));
+        context.lineTo(b.vertices[0].x, b.vertices[0].y);
+        fillOrStroke(context, b, 'sleeping', false, getOption);
+    }
+
+    // Axes
+    if (getOption(b, 'showAxes')) {
+        context.beginPath();
+        b.axes.forEach(a => {
+            context.moveTo(b.position.x, b.position.y);
+            context.lineTo(b.position.x + a.x * 10, b.position.y + a.y * 10);
+        });
+        fillOrStroke(context, b, 'axes', false, getOption);
+    }
+
+    // Collision vertices.
+    // Highlight collision vertices with a white circle.
+    if (collisions && getOption(b, 'showCollisions')) {
+        const r = 4;
+        for (const collision of collisions) {
+            if (collision.colliding && (collision.body1 === b || collision.body2 === b)) {
+                context.beginPath();
+                for (let i = 0; i < collision.contacts.length; i++) {
+                    const contact = collision.contacts[i].vertex;
+                    context.moveTo(contact.x + r, contact.y);
+                    context.arc(contact.x, contact.y, r, 0, Math.PI * 2);
+                }
+                fillOrStroke(context, b, 'collisions', true, getOption);
+            }
+        }
+    }
+
+    // Velocities
+    if (getOption(b, 'showVelocities')) {
+        if (b.velocity.x !== 0 || b.velocity.y !== 0) {
+            context.beginPath();
+            context.moveTo(b.position.x, b.position.y);
+            context.lineTo(b.position.x + b.velocity.x * 10, b.position.y + b.velocity.y * 10);
+            fillOrStroke(context, b, 'velocities', false, getOption);
+        }
+    }
+
+};
+
 /**
  *    HTML5 Canvas render for the physical engine.
  */
@@ -100,121 +220,17 @@ export default class Renderer {
             }
         };
 
-        const fillOrStroke = (b, name, fill) => {
-            if (fill) {
-                context.fillStyle = getOption(b, name + 'Fill');
-                context.fill();
-            }
-
-            context.setLineDash(getOption(b, name + 'Dash'));
-            context.lineWidth = getOption(b, name + 'Width');
-            context.strokeStyle = getOption(b, name + 'Style');
-            context.stroke();
-        };
-
         // Cycle through all the bodies
         for (const b of engine.bodies) {
-
-            // If the body is invisible, skip it
-            if (!getOption(b, 'visible')) {
-                continue;
-            }
-
-            // Fill the body with a pattern, or just draw the wireframe
-            if (getOption(b, 'showWireframe') || getOption(b, 'pattern')) {
-
-                // Draws the path of the hull
-                context.beginPath();
-                context.moveTo(b.vertices[0].x, b.vertices[0].y);
-                b.vertices.forEach(v => context.lineTo(v.x, v.y));
-                context.lineTo(b.vertices[0].x, b.vertices[0].y);
-
-                // Fill the path with the pattern, first
-                const pattern = getOption(b, 'pattern');
-                if (pattern) {
-                    context.fillStyle = context.createPattern(pattern, 'repeat');
-                    context.fill();
-                }
-
-                // Draw the wireframe, then
-                if (getOption(b, 'showWireframe')) {
-                    fillOrStroke(b, 'wireframe', false);
-                }
-
-            }
-
-            // The body is drawn with an image (for sprite animations)
-            if (getOption(b, 'image')) {
-                const image = getOption(b, 'image');
-                const width = getOption(b, 'width');
-                const height = getOption(b, 'height');
-                const sx = getOption(b, 'sx');
-                const sy = getOption(b, 'sy');
-                const dx = getOption(b, 'dx');
-                const dy = getOption(b, 'dy');
-                context.drawImage(image, sx, sy, width, height, dx + b.position.x, dy + b.position.y, width, height);
-            }
-
-            // Draw bounds
-            if (getOption(b, 'showBounds')) {
-                const min = b.bounds.min;
-                const max = b.bounds.max;
-                context.beginPath();
-                context.moveTo(min.x, min.y);
-                context.lineTo(max.x, min.y);
-                context.lineTo(max.x, max.y);
-                context.lineTo(min.x, max.y);
-                context.lineTo(min.x, min.y);
-                fillOrStroke(b, 'bounds', false);
-            }
-
-            // A graphical feedback for sleeping bodies.
-            // Redraws the body shape, but with a different color.
-            if (getOption(b, 'showSleeping') && b.isSleeping) {
-                context.beginPath();
-                context.moveTo(b.vertices[0].x, b.vertices[0].y);
-                b.vertices.forEach(v => context.lineTo(v.x, v.y));
-                context.lineTo(b.vertices[0].x, b.vertices[0].y);
-                fillOrStroke(b, 'sleeping', false);
-            }
-
-            // Axes
-            if (getOption(b, 'showAxes')) {
-                context.beginPath();
-                b.axes.forEach(a => {
-                    context.moveTo(b.position.x, b.position.y);
-                    context.lineTo(b.position.x + a.x * 10, b.position.y + a.y * 10);
+            const customDraw = getOption(b, 'draw');
+            if (typeof customDraw === 'function') {
+                customDraw(context, b, collisions, {
+                    drawHull: drawHull.bind(null, context, b),
+                    drawFull: drawSingleBody.bind(null, context, b, collisions, getOption)
                 });
-                fillOrStroke(b, 'axes', false);
+            } else {
+                drawSingleBody(context, b, collisions, getOption);
             }
-
-            // Collision vertices.
-            // Highlight collision vertices with a white circle.
-            if (collisions && getOption(b, 'showCollisions')) {
-                const r = 4;
-                for (const collision of collisions) {
-                    if (collision.colliding && (collision.body1 === b || collision.body2 === b)) {
-                        context.beginPath();
-                        for (let i = 0; i < collision.contacts.length; i++) {
-                            const contact = collision.contacts[i].vertex;
-                            context.moveTo(contact.x + r, contact.y);
-                            context.arc(contact.x, contact.y, r, 0, Math.PI * 2);
-                        }
-                        fillOrStroke(b, 'collisions', true);
-                    }
-                }
-            }
-
-            // Velocities
-            if (getOption(b, 'showVelocities')) {
-                if (b.velocity.x !== 0 || b.velocity.y !== 0) {
-                    context.beginPath();
-                    context.moveTo(b.position.x, b.position.y);
-                    context.lineTo(b.position.x + b.velocity.x * 10, b.position.y + b.velocity.y * 10);
-                    fillOrStroke(b, 'velocities', false);
-                }
-            }
-
         }
 
         // Increment the frame counter
