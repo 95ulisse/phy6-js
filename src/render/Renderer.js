@@ -1,3 +1,4 @@
+import EventEmitter from 'eventemitter3';
 import extend from 'extend';
 import { now } from '../core/util';
 
@@ -26,6 +27,9 @@ const drawSingleBody = (context, b, collisions, getOption) => {
     if (!getOption(b, 'visible')) {
         return;
     }
+
+    // Alpha for the body
+    context.globalAlpha = getOption(b, 'alpha');
 
     // Fill the body with a pattern, or just draw the wireframe
     if (getOption(b, 'showWireframe') || getOption(b, 'pattern')) {
@@ -124,7 +128,7 @@ const drawSingleBody = (context, b, collisions, getOption) => {
 /**
  *    HTML5 Canvas render for the physical engine.
  */
-export default class Renderer {
+export default class Renderer extends EventEmitter {
 
     /**
      *    Creates a new `Renderer` attached to the given engine.
@@ -133,11 +137,13 @@ export default class Renderer {
      *    @param {object} options - Options for the renderer.
      */
     constructor(engine, canvas, options) {
+        super();
         this._engine = engine;
         this._canvas = canvas;
         this._options = extend({
             background: 'transparent',
             visible: true,
+            alpha: 1,
 
             showSleeping: false,
             sleepingWidth: 1.5,
@@ -248,6 +254,9 @@ export default class Renderer {
             context.fillStyle = 'red';
             context.fillText(this._fps, 10, 30);
         }
+
+        // Fire frameDrawn event
+        this.emit('frameDrawn', context);
 
     }
 
