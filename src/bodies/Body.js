@@ -37,6 +37,8 @@ export default class Body extends EventEmitter {
             density: 0.001,
             isStatic: false,
             isTrigger: false,
+            isParticle: false,
+            ttl: 60 * 3,
             slop: 0.05,
             restitution: 0.5,
             friction: 0.1,
@@ -55,6 +57,8 @@ export default class Body extends EventEmitter {
             'force',
             'isStatic',
             'isTrigger',
+            'isParticle',
+            'ttl',
             'angularVelocity',
             'angle',
             'torque',
@@ -220,6 +224,14 @@ export default class Body extends EventEmitter {
 
         if (!this.shouldUpdate) {
             return;
+        }
+
+        // If this body is a particle, check if it's still alive before updating it
+        if (this.isParticle) {
+            if (this.ttl <= 0) {
+                return;
+            }
+            this.ttl = Math.max(0, this.ttl - 1);
         }
 
         if (typeof dt === 'number') {

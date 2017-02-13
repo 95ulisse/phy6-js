@@ -174,10 +174,20 @@ export default class Engine extends EventEmitter {
         }
 
         // Updates all the bodies
-        for (let b of this.bodies) {
+        let i = 0;
+        while (i < this.bodies.length) {
+            const b = this.bodies[i];
             if (b.shouldUpdate) {
                 b.update(dt);
+
+                // If the body was a particle, and it died, remove it from the engine
+                if (b.isParticle && b.ttl <= 0) {
+                    this.bodies.splice(i, 1);
+                    continue; // Do not increment counter
+                }
+
             }
+            i++;
         }
 
         // This is the time to perform collision detection.
@@ -191,9 +201,16 @@ export default class Engine extends EventEmitter {
         //   A full SAT will be performed for each pair here.
 
         // So, broad phase.
+        // Particles are excluded from collisions immediately.
         const collisionCandidates = [];
         for (const b1 of this.bodies) {
+            if (b1.isParticle) {
+                continue;
+            }
             for (const b2 of this.bodies) {
+                if (b2.isParticle) {
+                    continue;
+                }
                 if (b1 !== b2 && Bounds.overlap(b1.bounds, b2.bounds)) {
 
                     // Do not consider static or sleeping objects colliding toghether
