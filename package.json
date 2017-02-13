@@ -1,6 +1,6 @@
 {
   "name": "phy6-js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "An experimental physics engine for JavaScript written in ES6.",
   "main": "src/index.js",
   "scripts": {
